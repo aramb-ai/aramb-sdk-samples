@@ -11,7 +11,7 @@ export default async function PersonPage({ params }: { params: Promise<{ subTena
   const viewer = await requireViewer();
   const { subTenant } = await params;
   const result = await loadAdmin(viewer, async (client, groupId) => {
-    const person = await personInGroup(client, groupId, decodeURIComponent(subTenant));
+    const person = await personInGroup(client, groupId, subTenant);
     return { person, conversations: await conversationsOf(client, person.subTenant) };
   });
   return (

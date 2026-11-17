@@ -55,12 +55,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ account, profile, user }) {
       if (!account || !user.email) return '/signin?error=bad_request';
       if (account.provider === 'google' && profile?.email_verified !== true) return '/signin?error=unverified_email';
-      const subTenant = subTenantOf(account.provider, profile?.sub, user.id);
-      if (!subTenant) return '/signin?error=bad_request';
       try {
+        const subTenant = subTenantOf(account.provider, profile?.sub, user.id);
+        if (!subTenant) return '/signin?error=bad_request';
         await upsertPerson(aramb(), subTenant, user.email);
         return true;
       } catch (err) {
+        // SDK errors keep their code; anything else (e.g. an unexpected Google
+        // account id) is logged and shown as the generic message.
         const e = toClientError(err, 'sign-in');
         const q = new URLSearchParams({ error: e.code });
         if (e.requestId) q.set('requestId', e.requestId);
@@ -69,7 +71,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     jwt({ token, account, profile, user }) {
       if (account) {
-        const subTenant = subTenantOf(account.provider, profile?.sub, user?.id);
+        // signIn already derived this id successfully; a failure here is a bug.
+        // Auth.js then redirects to /signin with its own error code, which the
+        // page shows as the generic message.
+        let subTenant: string | null = null;
+        try {
+          subTenant = subTenantOf(account.provider, profile?.sub, user?.id);
+        } catch (err) {
+          console.error('[sign-in-jwt] could not derive the subTenant', err);
+          throw err;
+        }
         if (!subTenant) throw new Error(`Login via ${account.provider} did not identify a person.`);
         token.subTenant = subTenant;
       }
