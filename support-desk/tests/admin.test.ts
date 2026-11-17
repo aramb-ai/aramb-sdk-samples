@@ -2,7 +2,7 @@ import { ArambError, type Aramb, type GetUsageParams } from '@aramb-ai/sdk';
 import { describe, expect, it, vi } from 'vitest';
 import { NotAdminError, NotInCompanyError, adminGroupId, companyUsage, personInGroup } from '../lib/admin';
 import { monthWindow } from '../lib/month';
-import { person } from './fakes';
+import { group, person } from './fakes';
 
 const ADMIN = { email: 'ada@acme.test', subTenant: 'u_ada' };
 
@@ -36,17 +36,27 @@ function fakeClient() {
         : [{ key: 'g-acme', endUserId: null, deleted: false, credits: 10.5 }];
     return { since: '', until: '', products: [], rows, nextCursor: null, creditRateAsOf: '2026-11-17T00:00:00Z' };
   });
-  const client = { endUsers, getUsage, listConversations: vi.fn() } as unknown as Pick<
+  const groups = {
+    list: vi.fn(async () => ({ groups: [group('g-acme', 'acme.test'), group('g-globex', 'globex.test')], nextCursor: null })),
+  };
+  const client = { endUsers, groups, getUsage, listConversations: vi.fn() } as unknown as Pick<
     Aramb,
-    'endUsers' | 'getUsage' | 'listConversations'
+    'endUsers' | 'groups' | 'getUsage' | 'listConversations'
   >;
-  return { client, endUsers, getUsage };
+  return { client, endUsers, getUsage, groups };
 }
 
 describe('adminGroupId', () => {
-  it("is the admin's own group", async () => {
-    const { client } = fakeClient();
+  it("is the group of the admin's email domain", async () => {
+    const { client, endUsers } = fakeClient();
     expect(await adminGroupId(client, ADMIN, 'ada@acme.test')).toBe('g-acme');
+    // Found by domain, not by the admin's own person record.
+    expect(endUsers.get).not.toHaveBeenCalled();
+  });
+
+  it('refuses an admin whose company has no group yet', async () => {
+    const { client } = fakeClient();
+    await expect(adminGroupId(client, { email: 'zed@initech.test', subTenant: 'u_zed' }, 'zed@initech.test')).rejects.toBeInstanceOf(NotAdminError);
   });
 
   it('refuses someone not in ADMIN_EMAILS', async () => {

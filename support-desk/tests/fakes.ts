@@ -16,6 +16,7 @@ export function person(subTenant: string, groupId: string | null, extra: Partial
   };
 }
 
-export function group(id: string, name: string): Group {
-  return { id, name, externalRef: null, metadata: {}, createdAt: '2026-11-01T00:00:00Z' };
+/** A company group: name and externalRef are the domain unless given. */
+export function group(id: string, name: string, externalRef: string | null = name): Group {
+  return { id, name, externalRef, metadata: {}, createdAt: '2026-11-01T00:00:00Z' };
 }

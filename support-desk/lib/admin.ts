@@ -1,9 +1,10 @@
 import type { Aramb, Conversation, EndUser, UsageCreditsRow } from '@aramb-ai/sdk';
 import { isArambError } from '@aramb-ai/sdk';
-import { isAdmin, parseAdminEmails } from './identity';
+import { companyOf, isAdmin, parseAdminEmails } from './identity';
+import { findCompanyGroup } from './people';
 import type { MonthWindow } from './month';
 
-type AdminClient = Pick<Aramb, 'endUsers' | 'getUsage' | 'listConversations'>;
+type AdminClient = Pick<Aramb, 'endUsers' | 'groups' | 'getUsage' | 'listConversations'>;
 
 /** The signed-in person as the admin pages see them. */
 export interface Viewer {
@@ -28,14 +29,16 @@ export class NotAdminError extends Error {
 }
 
 /**
- * The admin's company group id: the group of their own person record. Throws
- * {@link NotAdminError} when they are not an admin or have no group.
+ * The admin's company group id: the group of their email domain. Throws
+ * {@link NotAdminError} when they are not an admin or their company has no
+ * group yet.
  */
 export async function adminGroupId(client: AdminClient, viewer: Viewer, adminEmailsRaw: string | undefined): Promise<string> {
-  if (!isAdmin(viewer.email, parseAdminEmails(adminEmailsRaw))) throw new NotAdminError();
-  const self = await client.endUsers.get(viewer.subTenant);
-  if (!self.groupId) throw new NotAdminError();
-  return self.groupId;
+  const domain = companyOf(viewer.email);
+  if (!domain || !isAdmin(viewer.email, parseAdminEmails(adminEmailsRaw))) throw new NotAdminError();
+  const group = await findCompanyGroup(client, domain);
+  if (!group) throw new NotAdminError();
+  return group.id;
 }
 
 /**
