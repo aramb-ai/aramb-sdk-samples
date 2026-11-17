@@ -51,7 +51,7 @@ to start and say why.
 |---|---|
 | A signed-in person | One end-user. `subTenant` is `u_g_<Google account id>` or, for the dev login, `u_d_<first 32 hex chars of sha256(lowercased email)>`. Only `[a-z0-9_]`. |
 | On every sign-in | `endUsers.upsert(subTenant, { displayName, groupId })` |
-| A company (the email domain, e.g. `acme.test`) | A group with that name (`groups.list` / `groups.create`). People on public mail domains (gmail.com, outlook.com, …) get no group and can't be admins. |
+| A company (the email domain, e.g. `acme.test`) | A group whose `externalRef` (and name) is the domain (`groups.list` / `groups.create`). People on public mail domains (gmail.com, outlook.com, …) get no group and can't be admins. |
 | A chat message | One short-lived `session({ agentId, subTenant, conversationId })` per request; `stream()` is relayed to the browser as Server-Sent Events. |
 | Chat history on reload | `getConversationMessages(conversationId, { agentId, subTenant })` |
 | Greeting and starter questions | `getAgent(agentId)` |
@@ -63,8 +63,12 @@ to start and say why.
 The app's server holds the builder key and is the only thing that talks to aramb. The browser talks only to the
 app's own routes under `app/api/`.
 
-An admin is a person listed in `ADMIN_EMAILS` whose email is on a company domain. They see and remove only people in
-their own company's group; any other person is a 404.
+An admin is a person listed in `ADMIN_EMAILS` whose email is on a company domain. Their company is the group of
+their domain. They see and remove only people in that group; any other person is a 404.
+
+**Cost of the group lookup.** The SDK has no lookup of a group by name or `externalRef`, so every sign-in (and every
+admin page) pages through `groups.list` to find the company. That is fine for a sample with a few companies; with
+many, keep a domain → group id map in your own store or cache it.
 
 Every SDK error is shown as a plain message with its request id (quote it when you ask for help). The full list is in
 `lib/errors.ts`.

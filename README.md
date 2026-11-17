@@ -19,6 +19,10 @@ This repository is public. Every pull request must pass two checks:
 - **`build`**: for every sample, `npm ci`, lint, typecheck, tests, `next build`, and a scan of the client bundle for
   API keys.
 
+The internal-references check reads the repository secret `INTERNAL_DENYLIST` and fails closed without it. Pull
+requests opened by Dependabot only see **Dependabot secrets**, so the repository owner adds the same value under
+Settings → Secrets and variables → Dependabot as well; otherwise Dependabot's pull requests fail `hygiene`.
+
 To run the secret scan before each commit, install [pre-commit](https://pre-commit.com) and run `pre-commit install`
 (it uses `.pre-commit-config.yaml`).
 
