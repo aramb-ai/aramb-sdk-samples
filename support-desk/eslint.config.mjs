@@ -18,8 +18,16 @@ const config = [
           patterns: [{ group: ['@aramb-ai/sdk/*'], message: 'Import only the public entry point @aramb-ai/sdk.' }],
         },
       ],
+      'no-restricted-globals': [
+        'error',
+        { name: 'WebSocket', message: 'Use the Session from @aramb-ai/sdk.' },
+      ],
       'no-restricted-syntax': [
         'error',
+        {
+          selector: "NewExpression[callee.name='WebSocket'], NewExpression[callee.property.name='WebSocket']",
+          message: 'Use the Session from @aramb-ai/sdk.',
+        },
         {
           selector: `CallExpression[callee.name='fetch'] > Literal.arguments:first-child[value=${arambUrl}]`,
           message: 'Call aramb through @aramb-ai/sdk, not fetch.',

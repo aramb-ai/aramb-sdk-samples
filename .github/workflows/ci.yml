@@ -51,6 +51,17 @@ jobs:
       - run: npm ci
       - name: Lint (R1 included)
         run: npm run lint
+      - name: No direct aramb calls in app code (R1)
+        run: |
+          dirs=$(for d in app lib components scripts; do [ -d "$d" ] && echo "$d"; done)
+          [ -n "$dirs" ] || { echo "R1: no source folders found"; exit 1; }
+          set +e
+          grep -rnE 'api\.aramb\.ai|/gw\b|WebSocket\(' $dirs
+          rc=$?
+          set -e
+          [ "$rc" = 1 ] && { echo "R1: no direct aramb URLs or WebSockets."; exit 0; }
+          [ "$rc" = 0 ] && echo "R1: call aramb only through @aramb-ai/sdk (matches above)."
+          exit 1
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
