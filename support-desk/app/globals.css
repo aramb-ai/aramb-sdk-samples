@@ -1,0 +1,67 @@
+:root {
+  color-scheme: light;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+}
+body {
+  margin: 0;
+  background: #f6f7f9;
+  color: #1c1f24;
+}
+main {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+a {
+  color: #2457c5;
+}
+button,
+input,
+select {
+  font: inherit;
+  padding: 0.4rem 0.7rem;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+th,
+td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid #e3e6ea;
+}
+.error {
+  border: 1px solid #e0a3a3;
+  background: #fff3f3;
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+}
+.muted {
+  color: #6b7280;
+  font-size: 0.9em;
+}
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 1rem 0;
+}
+.message {
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  background: #fff;
+  white-space: pre-wrap;
+}
+.message.user {
+  align-self: flex-end;
+  background: #dfe9ff;
+}
+.row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}

@@ -1,0 +1,28 @@
+# gitleaks configuration (H1): the default rules plus the key shapes of this platform.
+title = "aramb-sdk-samples"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "aramb-builder-key"
+description = "aramb API key"
+regex = '''aramb_(?:sk|pk)_[A-Za-z0-9]+'''
+keywords = ["aramb_sk_", "aramb_pk_"]
+
+[[rules]]
+id = "jwt"
+description = "JSON Web Token"
+regex = '''eyJ[\w-]+\.[\w-]+\.'''
+keywords = ["eyj"]
+
+[[rules]]
+id = "url-credentials"
+description = "Credentials in a URL (scheme://user:pass@host)"
+regex = '''://[^/\s:"'@]+:[^@\s"']+@'''
+
+[[rules]]
+id = "private-key-block"
+description = "PEM private key"
+regex = '''-----BEGIN [A-Z ]*PRIVATE KEY'''
+keywords = ["-----begin"]
