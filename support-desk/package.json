@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "setup": "tsx scripts/setup.ts",
-    "scan:bundle": "node tests/scan-bundle.mjs"
+    "scan:bundle": "node tests/scan-bundle.mjs",
+    "scan:responses": "node tests/scan-responses.mjs"
   },
   "dependencies": {
     "@aramb-ai/sdk": "~0.2.0",

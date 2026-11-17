@@ -67,6 +67,8 @@ jobs:
       - run: npm run build
       - name: Client bundle holds no key (R2)
         run: npm run scan:bundle
+      - name: Rendered pages and API responses hold no key (R2)
+        run: npm run scan:responses
 
   build:
     if: always()

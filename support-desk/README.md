@@ -35,6 +35,7 @@ To try the admin dashboard locally, set `ALLOW_DEV_LOGIN=1` and `ADMIN_EMAILS=ad
 | `ARAMB_KEY` | Your builder key. Read only on the server; never sent to the browser. |
 | `ARAMB_BASE_URL` | The aramb gateway. Default `https://api.aramb.ai/gw`. |
 | `AUTH_SECRET` | Secret that signs the login cookie (Auth.js). |
+| `AUTH_TRUST_HOST` / `AUTH_URL` | Needed by Auth.js for `next start` outside Vercel: `AUTH_TRUST_HOST=true` behind a proxy you trust, or `AUTH_URL` set to the app's public URL. |
 | `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` | Google sign-in. Leave empty to turn Google off. |
 | `ALLOW_DEV_LOGIN` | `1` adds an email-only login with no password. |
 | `ADMIN_EMAILS` | Comma-separated emails of company admins. |

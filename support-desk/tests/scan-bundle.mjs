@@ -1,10 +1,13 @@
 // R2: the builder key never reaches the browser. After `next build`, fail if
-// any file served to the browser (.next/static) mentions a builder key prefix
-// or the name of the variable that holds it.
+// any file served to the browser (.next/static, and the prerendered pages in
+// .next/server/app: .html, .rsc, .body) mentions a builder key prefix or the
+// name of the variable that holds it.
 import fs from 'node:fs';
 import path from 'node:path';
 
-const root = path.resolve(import.meta.dirname, '..', '.next', 'static');
+const next = path.resolve(import.meta.dirname, '..', '.next');
+const root = path.join(next, 'static');
+const prerendered = path.join(next, 'server', 'app');
 const NEEDLES = ['aramb_sk_', 'ARAMB_KEY'];
 
 if (!fs.existsSync(root)) {
@@ -20,6 +23,16 @@ for (const entry of fs.readdirSync(root, { recursive: true, withFileTypes: true 
   const file = path.join(entry.parentPath, entry.name);
   const text = fs.readFileSync(file, 'utf8');
   for (const needle of NEEDLES) if (text.includes(needle)) hits.push(`${path.relative(root, file)}: ${needle}`);
+}
+
+if (fs.existsSync(prerendered)) {
+  for (const entry of fs.readdirSync(prerendered, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile() || !/\.(html|rsc|body)$/.test(entry.name)) continue;
+    files += 1;
+    const file = path.join(entry.parentPath, entry.name);
+    const text = fs.readFileSync(file, 'utf8');
+    for (const needle of NEEDLES) if (text.includes(needle)) hits.push(`${path.relative(next, file)}: ${needle}`);
+  }
 }
 
 if (files === 0) {
