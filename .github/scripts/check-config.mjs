@@ -1,7 +1,9 @@
 // H5: configuration by template only.
 // - <sample>/.env.example values are empty or a known public placeholder;
 // - every "resolved" URL in every tracked package-lock.json is on the public
-//   npm registry (a lockfile made against another registry would leak its host).
+//   npm registry (a lockfile made against another registry would leak its host);
+// - every installed package in a lockfile has a "resolved" URL and an
+//   "integrity" hash (only the root and workspace links are exempt).
 // Prints only file:line. Exit 1 on any finding.
 import fs from 'node:fs';
 import { samples, trackedFiles } from './lib.mjs';
@@ -35,8 +37,19 @@ for (const file of files.filter((f) => f === 'package-lock.json' || f.endsWith('
     });
 }
 
+for (const file of files.filter((f) => f === 'package-lock.json' || f.endsWith('/package-lock.json'))) {
+  const lines = fs.readFileSync(file, 'utf8').split('\n');
+  const { packages = {} } = JSON.parse(lines.join('\n'));
+  for (const [key, entry] of Object.entries(packages)) {
+    if (key === '' || entry.link === true) continue;
+    if (entry.resolved && entry.integrity) continue;
+    const at = lines.findIndex((l) => l.trim() === `${JSON.stringify(key)}: {`);
+    bad.push(`${file}:${at + 1} (no ${entry.resolved ? 'integrity' : 'resolved'})`);
+  }
+}
+
 if (bad.length > 0) {
   console.error(`H5: ${bad.length} finding(s):\n${bad.join('\n')}`);
   process.exit(1);
 }
-console.log('H5: .env.example files hold only placeholders; every lockfile resolves from the public npm registry.');
+console.log('H5: .env.example files hold only placeholders; every lockfile entry resolves from the public npm registry with an integrity hash.');
