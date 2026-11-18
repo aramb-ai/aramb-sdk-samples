@@ -1,0 +1,41 @@
+{
+  "name": "support-desk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A small support desk built on the public aramb Node SDK: sign-in, two streamed agents, a per-company usage dashboard.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "setup": "tsx scripts/setup.ts",
+    "scan:bundle": "node tests/scan-bundle.mjs",
+    "scan:responses": "node tests/scan-responses.mjs"
+  },
+  "dependencies": {
+    "@aramb-ai/sdk": "~0.2.0",
+    "next": "16.4.6",
+    "next-auth": "5.0.0-beta.32",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "server-only": "0.0.1"
+  },
+  "devDependencies": {
+    "@next/env": "16.4.6",
+    "@types/node": "^22.19.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "16.4.6",
+    "tsx": "^4.23.0",
+    "typescript": "~5.9.3",
+    "vitest": "^5.1.0"
+  }
+}
