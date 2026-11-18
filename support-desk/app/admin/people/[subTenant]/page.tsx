@@ -3,6 +3,7 @@ import { ErrorNotice } from '@/components/ErrorNotice';
 import { RemovePerson } from '@/components/RemovePerson';
 import { conversationsOf, personInGroup } from '@/lib/admin';
 import { loadAdmin } from '@/lib/admin-page';
+import { agentLabelFor } from '@/lib/agents';
 import { requireViewer } from '@/lib/viewer';
 
 export const dynamic = 'force-dynamic';
@@ -40,7 +41,7 @@ export default async function PersonPage({ params }: { params: Promise<{ subTena
                 {result.data.conversations.map((c) => (
                   <tr key={c.id}>
                     <td>{c.title || '(untitled)'}</td>
-                    <td>{c.agentId}</td>
+                    <td>{agentLabelFor(c.agentId)}</td>
                     <td>{c.lastMessageAt}</td>
                   </tr>
                 ))}

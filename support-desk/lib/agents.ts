@@ -15,3 +15,9 @@ export function isAgentKey(value: string): value is AgentKey {
 export function agentIdFor(key: AgentKey, env: Readonly<Record<string, string | undefined>> = process.env): string {
   return requireEnv(env, AGENTS[key].envVar);
 }
+
+/** The desk's label for an agent id ("Support", "Billing"), or "Other agent" for an agent this app didn't create. */
+export function agentLabelFor(agentId: string, env: Readonly<Record<string, string | undefined>> = process.env): string {
+  const hit = Object.values(AGENTS).find((a) => env[a.envVar] === agentId);
+  return hit ? hit.label : 'Other agent';
+}

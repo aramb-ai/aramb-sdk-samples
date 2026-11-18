@@ -32,6 +32,9 @@ export function Chat({ agent, storageKey }: { agent: string; storageKey: string 
   const [error, setError] = useState<ClientError | null>(null);
   const [busy, setBusy] = useState(false);
   const [input, setInput] = useState('');
+  // False until the greeting and any stored history have loaded. Sending earlier would let the
+  // history load replace the lines while a reply streams into them.
+  const [ready, setReady] = useState(false);
   const conversationId = useRef<string | null>(null);
   const abort = useRef<AbortController | null>(null);
 
@@ -62,9 +65,13 @@ export function Chat({ agent, storageKey }: { agent: string; storageKey: string 
           .filter((m) => m.role === 'user' || m.role === 'assistant')
           .map((m) => ({ role: m.role as Line['role'], text: m.content })),
       );
-    })().catch((err: unknown) => {
-      if (!cancelled) setError(isClientError(err) ? err : { code: 'network', message: 'Could not load the chat. Please reload.' });
-    });
+    })()
+      .catch((err: unknown) => {
+        if (!cancelled) setError(isClientError(err) ? err : { code: 'network', message: 'Could not load the chat. Please reload.' });
+      })
+      .finally(() => {
+        if (!cancelled) setReady(true);
+      });
     return () => {
       cancelled = true;
       abort.current?.abort();
@@ -117,7 +124,7 @@ export function Chat({ agent, storageKey }: { agent: string; storageKey: string 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     const text = input.trim();
-    if (!text || busy) return;
+    if (!text || busy || !ready) return;
     setInput('');
     void send(text);
   };
@@ -143,7 +150,7 @@ export function Chat({ agent, storageKey }: { agent: string; storageKey: string 
       {info && lines.length === 0 && info.starters.length > 0 ? (
         <div className="row">
           {info.starters.map((s) => (
-            <button key={s} type="button" disabled={busy} onClick={() => void send(s)}>
+            <button key={s} type="button" disabled={busy || !ready} onClick={() => void send(s)}>
               {s}
             </button>
           ))}
@@ -157,10 +164,10 @@ export function Chat({ agent, storageKey }: { agent: string; storageKey: string 
           aria-label="Message"
           style={{ flex: 1 }}
         />
-        <button type="submit" disabled={busy || input.trim() === ''}>
+        <button type="submit" disabled={busy || !ready || input.trim() === ''}>
           Send
         </button>
-        <button type="button" onClick={newConversation} disabled={busy}>
+        <button type="button" onClick={newConversation} disabled={busy || !ready}>
           New conversation
         </button>
       </form>
