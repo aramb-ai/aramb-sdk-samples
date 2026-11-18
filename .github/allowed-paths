@@ -1,0 +1,13 @@
+# Repo-level files allowed in this public repository. Files of a sample are
+# allowed by that sample's own <sample>/.allowed-paths instead. Widening this
+# list is a reviewed change to this one file.
+LICENSE
+README.md
+.gitignore
+.gitleaks.toml
+.pre-commit-config.yaml
+.github/allowed-paths
+.github/dependabot.yml
+.github/workflows/hygiene.yml
+.github/workflows/ci.yml
+.github/scripts/*.mjs

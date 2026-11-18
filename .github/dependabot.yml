@@ -1,0 +1,13 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /support-desk
+    schedule:
+      interval: weekly
+    groups:
+      aramb-sdk:
+        patterns: ['@aramb-ai/sdk']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

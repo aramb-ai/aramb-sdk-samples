@@ -1,0 +1,95 @@
+# Public-repo hygiene (H1-H5). Required check: `hygiene`.
+name: hygiene
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: H1 no secrets (gitleaks, full history)
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          set -euo pipefail
+          tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfL -o "$RUNNER_TEMP/$tarball" "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/$tarball"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/$tarball" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/$tarball" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" git --config .gitleaks.toml --redact --no-banner --exit-code 1 .
+
+      - name: H2 path allowlist
+        run: node .github/scripts/check-paths.mjs
+
+      - name: H3 no internal references
+        env:
+          INTERNAL_DENYLIST: ${{ secrets.INTERNAL_DENYLIST }}
+        run: |
+          set -euo pipefail
+          tmp="$RUNNER_TEMP/deny"
+          printf '%s\n' "$INTERNAL_DENYLIST" | grep -v '^[[:space:]]*$' > "$tmp" || true
+          if [ ! -s "$tmp" ]; then
+            echo "H3: the INTERNAL_DENYLIST secret is missing or empty; failing closed."
+            exit 1
+          fi
+          # Built from two parts so this file doesn't itself match the canary.
+          canary="zz-aramb-denylist""-canary"
+          if ! grep -qxF "$canary" "$tmp"; then
+            echo "H3: INTERNAL_DENYLIST lacks its canary entry; failing closed."
+            exit 1
+          fi
+          echo "H3: $(wc -l < "$tmp") pattern(s)."
+          # Only file:line is ever printed, never the matching line or the word.
+          set +e
+          git grep -n -i -F -f "$tmp" -- . | cut -d: -f1,2 > "$RUNNER_TEMP/hits"
+          rc=${PIPESTATUS[0]}
+          set -e
+          rm -f "$tmp"
+          if [ "$rc" -gt 1 ]; then
+            echo "H3: git grep failed (exit $rc)"
+            exit 1
+          fi
+          if [ -s "$RUNNER_TEMP/hits" ]; then
+            echo "H3: internal references found at:"
+            cat "$RUNNER_TEMP/hits"
+            exit 1
+          fi
+          echo "H3: no internal references."
+
+      - name: H4 public CI only
+        run: |
+          set -euo pipefail
+          command -v yq >/dev/null || { echo "H4: yq is not installed on this runner"; exit 1; }
+          fail=0
+          for f in .github/workflows/*.yml .github/workflows/*.yaml; do
+            [ -e "$f" ] || continue
+            bad_runs=$(yq '[.jobs[] | .["runs-on"]] | map(select(. != "ubuntu-latest")) | length' "$f")
+            [ "$bad_runs" = "0" ] || { echo "H4: $f: every runs-on must be ubuntu-latest"; fail=1; }
+            perms=$(yq -o=json -I=0 '.permissions' "$f")
+            [ "$perms" = '{"contents":"read"}' ] || { echo "H4: $f: top-level permissions must be exactly contents: read"; fail=1; }
+            job_perms=$(yq '[.jobs[] | select(has("permissions"))] | length' "$f")
+            [ "$job_perms" = "0" ] || { echo "H4: $f: jobs must not set their own permissions"; fail=1; }
+            unpinned=$(yq '[.. | select(has("uses")) | .uses] | map(select(test("^[^@]+@[0-9a-f]{40}$") | not)) | length' "$f")
+            [ "$unpinned" = "0" ] || { echo "H4: $f: every uses: must be pinned to a 40-character commit SHA"; fail=1; }
+            other_secrets=$(grep -oE 'secrets\.[A-Za-z0-9_]+|secrets\[' "$f" | grep -vx 'secrets.INTERNAL_DENYLIST' | wc -l || true)
+            [ "$other_secrets" = "0" ] || { echo "H4: $f: the only secret allowed is INTERNAL_DENYLIST"; fail=1; }
+            passed=$(yq '[.jobs[] | select(has("secrets"))] | length' "$f")
+            [ "$passed" = "0" ] || { echo "H4: $f: jobs must not pass secrets to other workflows"; fail=1; }
+          done
+          [ "$fail" = "0" ] && echo "H4: workflows use GitHub-hosted runners, read-only permissions, pinned actions."
+          exit "$fail"
+
+      - name: H5 config by template
+        run: node .github/scripts/check-config.mjs

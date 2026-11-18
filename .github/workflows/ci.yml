@@ -1,0 +1,84 @@
+# Build and test every sample. A sample is a top-level folder with a
+# .allowed-paths and a package.json. Required check: `build`.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  samples:
+    runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.find.outputs.list }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: find
+        run: |
+          set -euo pipefail
+          list=$(for d in */; do d=${d%/}; [ -f "$d/.allowed-paths" ] && [ -f "$d/package.json" ] && echo "$d"; done | jq -R . | jq -cs .)
+          echo "Samples: $list"
+          [ "$list" != "[]" ] || { echo "No samples found"; exit 1; }
+          echo "list=$list" >> "$GITHUB_OUTPUT"
+
+  sample:
+    needs: samples
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sample: ${{ fromJSON(needs.samples.outputs.list) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.sample }}
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ${{ matrix.sample }}/package-lock.json
+      - run: npm ci
+      - name: Lint (R1 included)
+        run: npm run lint
+      - name: No direct aramb calls in app code (R1)
+        run: |
+          dirs=$(for d in app lib components scripts; do [ -d "$d" ] && echo "$d"; done)
+          [ -n "$dirs" ] || { echo "R1: no source folders found"; exit 1; }
+          set +e
+          grep -rnE 'api\.aramb\.ai|/gw\b|WebSocket\(' $dirs
+          rc=$?
+          set -e
+          [ "$rc" = 1 ] && { echo "R1: no direct aramb URLs or WebSockets."; exit 0; }
+          [ "$rc" = 0 ] && echo "R1: call aramb only through @aramb-ai/sdk (matches above)."
+          exit 1
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Client bundle holds no key (R2)
+        run: npm run scan:bundle
+      - name: Rendered pages and API responses hold no key (R2)
+        run: npm run scan:responses
+
+  build:
+    if: always()
+    needs: [samples, sample]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All samples green
+        env:
+          SAMPLES: ${{ needs.samples.result }}
+          SAMPLE: ${{ needs.sample.result }}
+        run: |
+          echo "samples: $SAMPLES, sample: $SAMPLE"
+          [ "$SAMPLES" = success ] && [ "$SAMPLE" = success ]

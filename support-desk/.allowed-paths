@@ -1,0 +1,16 @@
+# Files allowed in this sample (paths relative to support-desk/). Anything else fails the hygiene check.
+app/**
+components/**
+lib/**
+scripts/setup.ts
+public/**
+tests/**
+README.md
+.env.example
+.gitignore
+.allowed-paths
+package.json
+package-lock.json
+tsconfig.json
+next.config.*
+eslint.config.*
